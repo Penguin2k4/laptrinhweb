@@ -45,8 +45,17 @@ class AuthController
     public function authenticate()
     {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $username = $_POST['username'];
-            $password = $_POST['password'];
+            // Check if the request body is JSON
+            $input = json_decode(file_get_contents('php://input'), true);
+
+            // Use JSON input if available, otherwise fallback to $_POST
+            $username = $input['username'] ?? $_POST['username'] ?? null;
+            $password = $input['password'] ?? $_POST['password'] ?? null;
+
+            if (!$username || !$password) {
+                echo "Tên đăng nhập hoặc mật khẩu không đúng.";
+                return;
+            }
 
             $query = "SELECT * FROM account WHERE username = :username";
             $stmt = $this->db->prepare($query);
@@ -59,9 +68,10 @@ class AuthController
                 $_SESSION['user_id'] = $user->id;
                 $_SESSION['username'] = $user->username; // Store username in session
                 $_SESSION['user_role'] = $user->role;
-                header('Location: /webbanhang/');
+                echo json_encode(['message' => 'Login successful']);
             } else {
-                echo "Tên đăng nhập hoặc mật khẩu không đúng.";
+                http_response_code(401);
+                echo json_encode(['message' => 'Tên đăng nhập hoặc mật khẩu không đúng.']);
             }
         }
     }
